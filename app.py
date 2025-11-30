@@ -97,6 +97,7 @@ if uploaded_file is not None:
                 "¿Quieres añadir filtros por atributos?",
                 ["No", "Sí"],
                 index=0,
+                key="usar_filtros_radio"
             ) == "Sí"
         )
 
@@ -113,7 +114,8 @@ if uploaded_file is not None:
         if atributos_n1:
             filtros_n1 = st.multiselect(
                 f"Atributos para {nodo1_sel}:",
-                atributos_n1
+                atributos_n1,
+                key=f"attr_n1_{nodo1_sel}"
             )
 
         # Atributos nodo 2
@@ -121,19 +123,17 @@ if uploaded_file is not None:
         if atributos_n2:
             filtros_n2 = st.multiselect(
                 f"Atributos para {nodo2_sel}:",
-                atributos_n2
+                atributos_n2,
+                key=f"attr_n2_{nodo2_sel}"
             )
 
-        # Validación: si eligió usar filtros, debe seleccionar al menos uno
+        # Validación: si eligió usar filtros, debe seleccionar alguno
         if filtros_n1 == [] and filtros_n2 == []:
             st.info("Selecciona uno o más atributos para continuar…")
             st.stop()
 
     # ------------------ Construcción del WHERE ------------------
     def generar_where(label, atributos):
-        """
-        ['edad','nombre'] ->  ["n.edad = '<valor>'", "n.nombre = '<valor>'"]
-        """
         if not atributos:
             return []
         return [f"{label}.{attr} = '<valor>'" for attr in atributos]
@@ -157,11 +157,11 @@ if uploaded_file is not None:
 
     query += "RETURN *"
 
-    # Área editable
     query_editable = st.text_area(
         "Puedes editar la query:",
         value=query,
-        height=200
+        height=200,
+        key="final_query_editor"
     )
 
     st.code(query_editable, language="cypher")
