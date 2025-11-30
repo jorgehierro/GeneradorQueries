@@ -25,15 +25,13 @@ atributos_ok = False
 
 if atributos_file is not None:
     atributos_df = pd.read_csv(atributos_file)
-
-    # validar columnas
     if "nodo" in atributos_df.columns and "atributo" in atributos_df.columns:
         atributos_ok = True
         st.success("CSV de atributos cargado correctamente.")
     else:
         st.error("⚠️ El CSV de atributos debe contener las columnas 'nodo' y 'atributo'")
 
-# Procesar CSV principal
+# ------------------ Procesar CSV principal ------------------
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
 
@@ -45,7 +43,6 @@ if uploaded_file is not None:
         st.error("⚠️ El CSV debe contener las columnas: nodo1, relacion, nodo2")
 
     else:
-
         st.markdown("---")
 
         # ------------------ Nodo 1 ------------------
@@ -59,7 +56,6 @@ if uploaded_file is not None:
                 key="nodo1_select"
             )
 
-        # Continuar si se selecciona Nodo1
         if nodo1_sel != "(elige uno)":
 
             df_filtrado_nodo1 = df[df["nodo1"] == nodo1_sel]
@@ -140,7 +136,6 @@ if uploaded_file is not None:
                         pares = [f"{attr}: VALOR" for attr in lista]
                         return "{" + ", ".join(pares) + "}"
 
-
                     filtro_n1 = construir_filtros(filtros_nodo1)
                     filtro_n2 = construir_filtros(filtros_nodo2)
 
@@ -149,11 +144,13 @@ if uploaded_file is not None:
                     with st.container():
                         st.subheader("🧾 7. Query generada (editable)")
 
+                        n_filtro = f"{filtro_n1}" if filtro_n1 else ""
+                        m_filtro = f"{filtro_n2}" if filtro_n2 else ""
+
                         query_base = (
-                            f"MATCH (n:{nodo1_sel} {filtro_n1 if filtro_n1 else ''})"
+                            f"MATCH (n:{nodo1_sel}{n_filtro})"
                             f"-[r:{relacion_sel}]-"
-                            f"(m:{nodo2_sel} {filtro_n2 if filtro_n2 else ''})\n"
-                            f"RETURN *"
+                            f"(m:{nodo2_sel}{m_filtro})\nRETURN *"
                         )
 
                         query_editable = st.text_area(
