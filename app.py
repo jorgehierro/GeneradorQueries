@@ -45,9 +45,3 @@ RETURN *
                     """.strip()
 
                     st.code(query, language="cypher")
-
-                    st.text_area(
-                        "Copia la query:",
-                        value=query,
-                        height=120
-                    )
