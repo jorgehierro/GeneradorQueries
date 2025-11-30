@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-st.title("Generador Guiado de Queries OpenCypher")
+st.title("Generador de Queries Cypher")
 
 uploaded_file = st.file_uploader("Sube un archivo CSV", type=["csv"])
 
