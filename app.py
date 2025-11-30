@@ -11,13 +11,13 @@ st.markdown("---")
 
 # ------------------ Carga del archivo ------------------
 with st.container():
-    st.subheader("📄 1. Subir archivo CSV")
+    st.subheader("1. Subir archivo CSV")
     uploaded_file = st.file_uploader("Selecciona un archivo CSV", type=["csv"])
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
 
-    st.markdown("### 👀 Vista previa del CSV")
+    st.markdown("### Vista previa del CSV")
     st.dataframe(df, use_container_width=True)
 
     expected_columns = ["nodo1", "relacion", "nodo2"]
@@ -29,7 +29,7 @@ if uploaded_file is not None:
 
         # ------------------ Nodo 1 ------------------
         with st.container():
-            st.subheader("🟦 2. Selecciona el Nodo 1")
+            st.subheader("2. Selecciona el Nodo 1")
 
             nodos1_unicos = sorted(df["nodo1"].unique())
             nodo1_sel = st.selectbox(
@@ -46,7 +46,7 @@ if uploaded_file is not None:
 
             # ------------------ Relación ------------------
             with st.container():
-                st.subheader("🟧 3. Selecciona la relación")
+                st.subheader("3. Selecciona la relación")
 
                 relaciones = sorted(df_filtrado_nodo1["relacion"].unique())
                 relacion_sel = st.selectbox(
@@ -63,7 +63,7 @@ if uploaded_file is not None:
 
                 # ------------------ Nodo 2 ------------------
                 with st.container():
-                    st.subheader("🟩 4. Selecciona el Nodo 2")
+                    st.subheader("4. Selecciona el Nodo 2")
 
                     nodos2 = sorted(df_filtrado_rel["nodo2"].unique())
                     nodo2_sel = st.selectbox(
@@ -78,7 +78,7 @@ if uploaded_file is not None:
 
                     # ------------------ Query final ------------------
                     with st.container():
-                        st.subheader("🧾 5. Query generada")
+                        st.subheader("5. Query generada")
 
                         query = f"""
 MATCH (n:{nodo1_sel})-[r:{relacion_sel}]-(m:{nodo2_sel})
