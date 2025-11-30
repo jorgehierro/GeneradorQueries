@@ -21,17 +21,17 @@ with st.container():
 
 # Cargar atributos si existe
 atributos_df = None
+atributos_ok = False
+
 if atributos_file is not None:
     atributos_df = pd.read_csv(atributos_file)
-    # filtramos columnas necesarias
+
+    # validar columnas
     if "nodo" in atributos_df.columns and "atributo" in atributos_df.columns:
         atributos_ok = True
+        st.success("CSV de atributos cargado correctamente.")
     else:
-        atributos_ok = False
         st.error("⚠️ El CSV de atributos debe contener las columnas 'nodo' y 'atributo'")
-else:
-    atributos_ok = False
-
 
 # Procesar CSV principal
 if uploaded_file is not None:
@@ -55,10 +55,11 @@ if uploaded_file is not None:
             nodo1_sel = st.selectbox(
                 "Nodo de origen:",
                 options=["(elige uno)"] + nodos1_unicos,
-                index=0
+                index=0,
+                key="nodo1_select"
             )
 
-        # Continuar si se selecciona
+        # Continuar si se selecciona Nodo1
         if nodo1_sel != "(elige uno)":
 
             df_filtrado_nodo1 = df[df["nodo1"] == nodo1_sel]
@@ -73,7 +74,8 @@ if uploaded_file is not None:
                 relacion_sel = st.selectbox(
                     "Relaciones disponibles:",
                     options=["(elige una)"] + relaciones,
-                    index=0
+                    index=0,
+                    key="relacion_select"
                 )
 
             if relacion_sel != "(elige una)":
@@ -90,45 +92,44 @@ if uploaded_file is not None:
                     nodo2_sel = st.selectbox(
                         "Nodo destino:",
                         options=["(elige uno)"] + nodos2,
-                        index=0
+                        index=0,
+                        key="nodo2_select"
                     )
 
                 if nodo2_sel != "(elige uno)":
 
                     st.markdown("---")
 
-                    # ------------------ Atributos del nodo ------------------
+                    # ------------------ Filtros de atributos ------------------
                     with st.container():
-                        st.subheader("🟪 6. Añadir filtros opcionales al nodo")
+                        st.subheader("🟪 6. Añadir filtros opcionales")
 
                         filtros_nodo1 = []
                         filtros_nodo2 = []
 
-                        # Si hay CSV de atributos cargado
                         if atributos_ok:
 
-                            # Atributos para nodo1
+                            # Atributos de nodo1
                             atributos_n1 = atributos_df[atributos_df["nodo"] == nodo1_sel]["atributo"].unique().tolist()
-
                             if atributos_n1:
-                                filtro1 = st.multiselect(
+                                filtros_nodo1 = st.multiselect(
                                     f"Atributos disponibles para {nodo1_sel}:",
-                                    atributos_n1
+                                    atributos_n1,
+                                    key=f"attr_{nodo1_sel}_n1"
                                 )
-                                filtros_nodo1 = filtro1
 
-                            # Atributos para nodo2
+                            # Atributos de nodo2
                             atributos_n2 = atributos_df[atributos_df["nodo"] == nodo2_sel]["atributo"].unique().tolist()
                             if atributos_n2:
-                                filtro2 = st.multiselect(
+                                filtros_nodo2 = st.multiselect(
                                     f"Atributos disponibles para {nodo2_sel}:",
-                                    atributos_n2
+                                    atributos_n2,
+                                    key=f"attr_{nodo2_sel}_n2"
                                 )
-                                filtros_nodo2 = filtro2
                         else:
                             st.info("Sube un CSV de atributos para habilitar filtros automáticos.")
 
-                    # Construcción de bloque de atributos
+                    # ------------------ Construcción filtros ------------------
                     def construir_filtros(lista):
                         if not lista:
                             return ""
@@ -143,12 +144,18 @@ if uploaded_file is not None:
                     with st.container():
                         st.subheader("🧾 7. Query generada (editable)")
 
-                        query_base = f"MATCH (n:{nodo1_sel} {filtro_n1 if filtro_n1 else ''})-[r:{relacion_sel}]-(m:{nodo2_sel} {filtro_n2 if filtro_n2 else ''})\nRETURN *"
+                        query_base = (
+                            f"MATCH (n:{nodo1_sel} {filtro_n1 if filtro_n1 else ''})"
+                            f"-[r:{relacion_sel}]-"
+                            f"(m:{nodo2_sel} {filtro_n2 if filtro_n2 else ''})\n"
+                            f"RETURN *"
+                        )
 
                         query_editable = st.text_area(
                             "Puedes editar la query manualmente:",
                             value=query_base,
-                            height=180
+                            height=180,
+                            key="query_edit"
                         )
 
                         st.code(query_editable, language="cypher")
