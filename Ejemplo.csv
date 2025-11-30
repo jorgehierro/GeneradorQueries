@@ -1,0 +1,9 @@
+﻿nodo1,relacion,nodo2
+Persona,AMIGO_DE,Persona
+Persona,VIVE_EN,Ciudad
+Empresa,UBICADO_EN,País
+Cliente,COMPRA,Producto
+Proveedor,Vende,Producto
+Persona,TRABAJA_EN,Empresa
+Proyecto,COLABORA_CON,Departamento
+Evento,PARTICIPA_EN,Persona
