@@ -114,7 +114,7 @@ if uploaded_file is not None:
             for att in filtros_n1:
                 valores_filtros_n1[att] = st.text_input(
                     f"Valor para {nodo1_sel}.{att}",
-                    key=f"{nodo1_sel}_{att}"
+                    key=f"{nodo1_sel}_{att}_n1"
                 )
 
         # Nodo 2
@@ -127,7 +127,7 @@ if uploaded_file is not None:
             for att in filtros_n2:
                 valores_filtros_n2[att] = st.text_input(
                     f"Valor para {nodo2_sel}.{att}",
-                    key=f"{nodo2_sel}_{att}"
+                    key=f"{nodo2_sel}_{att}_n2"
                 )
 
     # ------------------ Botón para generar la query ------------------
