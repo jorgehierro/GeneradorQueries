@@ -45,45 +45,37 @@ if uploaded_file is not None:
 
     # ------------------ Nodo 1 ------------------
     st.subheader("🟦 3. Selecciona el Nodo 1")
-
     nodos1 = sorted(df["nodo1"].unique())
     nodo1_sel = st.selectbox(
         "Nodo origen:",
         options=["(elige uno)"] + nodos1
     )
-
     if nodo1_sel == "(elige uno)":
         st.stop()
-
     df_n1 = df[df["nodo1"] == nodo1_sel]
 
     st.markdown("---")
 
     # ------------------ Relación ------------------
     st.subheader("🟧 4. Selecciona la relación")
-
     relaciones = sorted(df_n1["relacion"].unique())
     relacion_sel = st.selectbox(
         "Relación:",
         options=["(elige una)"] + relaciones
     )
-
     if relacion_sel == "(elige una)":
         st.stop()
-
     df_rel = df_n1[df_n1["relacion"] == relacion_sel]
 
     st.markdown("---")
 
     # ------------------ Nodo 2 ------------------
     st.subheader("🟩 5. Selecciona el Nodo 2")
-
     nodos2 = sorted(df_rel["nodo2"].unique())
     nodo2_sel = st.selectbox(
         "Nodo destino:",
         options=["(elige uno)"] + nodos2
     )
-
     if nodo2_sel == "(elige uno)":
         st.stop()
 
@@ -101,68 +93,71 @@ if uploaded_file is not None:
             ) == "Sí"
         )
 
-    # ------------------ Selección de atributos ------------------
-    filtros_n1 = []
-    filtros_n2 = []
+    # ------------------ Preparar listas de atributos disponibles ------------------
+    filtros_n1, filtros_n2 = [], []
+    valores_filtros_n1, valores_filtros_n2 = {}, {}
 
+    atributos_n1, atributos_n2 = [], []
     if atributos_ok and usar_filtros:
-
-        st.subheader("🟪 6. Selecciona atributos para filtrar")
-
-        # Atributos nodo 1
         atributos_n1 = atributos_df[atributos_df["nodo"] == nodo1_sel]["atributo"].unique().tolist()
+        atributos_n2 = atributos_df[atributos_df["nodo"] == nodo2_sel]["atributo"].unique().tolist()
+
+        st.subheader("🟪 6. Selecciona atributos y sus valores")
+
+        # Nodo 1
         if atributos_n1:
             filtros_n1 = st.multiselect(
                 f"Atributos para {nodo1_sel}:",
                 atributos_n1,
-                key=f"attr_n1_{nodo1_sel}"
+                key=f"filtros_n1_{nodo1_sel}"
             )
+            for att in filtros_n1:
+                valores_filtros_n1[att] = st.text_input(
+                    f"Valor para {nodo1_sel}.{att}",
+                    key=f"{nodo1_sel}_{att}"
+                )
 
-        # Atributos nodo 2
-        atributos_n2 = atributos_df[atributos_df["nodo"] == nodo2_sel]["atributo"].unique().tolist()
+        # Nodo 2
         if atributos_n2:
             filtros_n2 = st.multiselect(
                 f"Atributos para {nodo2_sel}:",
                 atributos_n2,
-                key=f"attr_n2_{nodo2_sel}"
+                key=f"filtros_n2_{nodo2_sel}"
             )
+            for att in filtros_n2:
+                valores_filtros_n2[att] = st.text_input(
+                    f"Valor para {nodo2_sel}.{att}",
+                    key=f"{nodo2_sel}_{att}"
+                )
 
-        # Validación: si eligió usar filtros, debe seleccionar alguno
-        if filtros_n1 == [] and filtros_n2 == []:
-            st.info("Selecciona uno o más atributos para continuar…")
-            st.stop()
+    # ------------------ Botón para generar la query ------------------
+    if st.button("Generar Query"):
 
-    # ------------------ Construcción del WHERE ------------------
-    def generar_where(label, atributos):
-        if not atributos:
-            return []
-        return [f"{label}.{attr} = '<valor>'" for attr in atributos]
+        condiciones = []
 
-    condiciones = []
-    condiciones += generar_where("n", filtros_n1)
-    condiciones += generar_where("m", filtros_n2)
+        for att, val in valores_filtros_n1.items():
+            if val.strip():
+                condiciones.append(f"n.{att} = '{val}'")
 
-    where_clause = ""
-    if condiciones:
-        where_clause = "WHERE " + " AND ".join(condiciones)
+        for att, val in valores_filtros_n2.items():
+            if val.strip():
+                condiciones.append(f"m.{att} = '{val}'")
 
-    # ------------------ Construcción final de la Query ------------------
-    st.markdown("---")
-    st.subheader("🧾 7. Query generada")
+        where_clause = ""
+        if condiciones:
+            where_clause = "WHERE " + " AND ".join(condiciones)
 
-    query = f"MATCH (n:{nodo1_sel})-[r:{relacion_sel}]-(m:{nodo2_sel})\n"
+        query = f"MATCH (n:{nodo1_sel})-[r:{relacion_sel}]-(m:{nodo2_sel})\n"
+        if where_clause:
+            query += where_clause + "\n"
+        query += "RETURN *"
 
-    if where_clause:
-        query += where_clause + "\n"
-
-    query += "RETURN *"
-
-    query_editable = st.text_area(
-        "Puedes editar la query:",
-        value=query,
-        height=200,
-        key="final_query_editor"
-    )
-
-    st.code(query_editable, language="cypher")
-    st.success("✅ Query lista para copiar y usar.")
+        st.subheader("🧾 7. Query generada")
+        query_editable = st.text_area(
+            "Puedes editar la query:",
+            value=query,
+            height=200,
+            key="final_query_editor"
+        )
+        st.code(query_editable, language="cypher")
+        st.success("✅ Query lista para copiar y usar.")
