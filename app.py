@@ -131,10 +131,15 @@ if uploaded_file is not None:
 
                     # ------------------ Construcción filtros ------------------
                     def construir_filtros(lista):
+                        """
+                        Devuelve un string válido de atributos Cypher:
+                        ['edad', 'nombre'] -> "{edad: VALOR, nombre: VALOR}"
+                        """
                         if not lista:
                             return ""
                         pares = [f"{attr}: VALOR" for attr in lista]
-                        return "{ " + ", ".join(pares) + " }"
+                        return "{" + ", ".join(pares) + "}"
+
 
                     filtro_n1 = construir_filtros(filtros_nodo1)
                     filtro_n2 = construir_filtros(filtros_nodo2)
