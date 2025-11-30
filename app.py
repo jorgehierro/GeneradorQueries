@@ -4,7 +4,7 @@ import pandas as pd
 # ------------------ Estilo general ------------------
 st.set_page_config(page_title="Generador Cypher", layout="centered")
 
-st.title("🧩 Generador de Queries Cypher con Atributos")
+st.title("🧩 Generador Cypher con Filtros Opcionales")
 st.markdown("Sube tus archivos y construye la query paso a paso.")
 
 st.markdown("---")
@@ -19,7 +19,6 @@ with st.container():
     st.subheader("📄 2. Subir archivo CSV de atributos (opcional)")
     atributos_file = st.file_uploader("CSV de atributos", type=["csv"])
 
-# Cargar atributos si existe
 atributos_df = None
 atributos_ok = False
 
@@ -31,147 +30,139 @@ if atributos_file is not None:
     else:
         st.error("⚠️ El CSV de atributos debe contener las columnas 'nodo' y 'atributo'")
 
-# ------------------ Procesar CSV principal ------------------
+# ------------------ PROCESAR CSV PRINCIPAL ------------------
 if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
 
-    st.markdown("### 👀 Vista previa del CSV de relaciones")
+    df = pd.read_csv(uploaded_file)
+    st.markdown("### 👀 Vista previa del CSV")
     st.dataframe(df, use_container_width=True)
 
-    expected_columns = ["nodo1", "relacion", "nodo2"]
-    if not all(col in df.columns for col in expected_columns):
+    if not all(col in df.columns for col in ["nodo1", "relacion", "nodo2"]):
         st.error("⚠️ El CSV debe contener las columnas: nodo1, relacion, nodo2")
+        st.stop()
 
-    else:
-        st.markdown("---")
+    st.markdown("---")
 
-        # ------------------ Nodo 1 ------------------
-        with st.container():
-            st.subheader("🟦 3. Selecciona el Nodo 1")
-            nodos1_unicos = sorted(df["nodo1"].unique())
-            nodo1_sel = st.selectbox(
-                "Nodo de origen:",
-                options=["(elige uno)"] + nodos1_unicos,
+    # ------------------ Nodo 1 ------------------
+    st.subheader("🟦 3. Selecciona el Nodo 1")
+
+    nodos1 = sorted(df["nodo1"].unique())
+    nodo1_sel = st.selectbox(
+        "Nodo origen:",
+        options=["(elige uno)"] + nodos1
+    )
+
+    if nodo1_sel == "(elige uno)":
+        st.stop()
+
+    df_n1 = df[df["nodo1"] == nodo1_sel]
+
+    st.markdown("---")
+
+    # ------------------ Relación ------------------
+    st.subheader("🟧 4. Selecciona la relación")
+
+    relaciones = sorted(df_n1["relacion"].unique())
+    relacion_sel = st.selectbox(
+        "Relación:",
+        options=["(elige una)"] + relaciones
+    )
+
+    if relacion_sel == "(elige una)":
+        st.stop()
+
+    df_rel = df_n1[df_n1["relacion"] == relacion_sel]
+
+    st.markdown("---")
+
+    # ------------------ Nodo 2 ------------------
+    st.subheader("🟩 5. Selecciona el Nodo 2")
+
+    nodos2 = sorted(df_rel["nodo2"].unique())
+    nodo2_sel = st.selectbox(
+        "Nodo destino:",
+        options=["(elige uno)"] + nodos2
+    )
+
+    if nodo2_sel == "(elige uno)":
+        st.stop()
+
+    st.markdown("---")
+
+    # ------------------ Preguntar si quiere filtros ------------------
+    usar_filtros = False
+    if atributos_ok:
+        usar_filtros = (
+            st.radio(
+                "¿Quieres añadir filtros por atributos?",
+                ["No", "Sí"],
                 index=0,
-                key="nodo1_select"
+            ) == "Sí"
+        )
+
+    # ------------------ Selección de atributos ------------------
+    filtros_n1 = []
+    filtros_n2 = []
+
+    if atributos_ok and usar_filtros:
+
+        st.subheader("🟪 6. Selecciona atributos para filtrar")
+
+        # Atributos nodo 1
+        atributos_n1 = atributos_df[atributos_df["nodo"] == nodo1_sel]["atributo"].unique().tolist()
+        if atributos_n1:
+            filtros_n1 = st.multiselect(
+                f"Atributos para {nodo1_sel}:",
+                atributos_n1
             )
 
-        if nodo1_sel != "(elige uno)":
+        # Atributos nodo 2
+        atributos_n2 = atributos_df[atributos_df["nodo"] == nodo2_sel]["atributo"].unique().tolist()
+        if atributos_n2:
+            filtros_n2 = st.multiselect(
+                f"Atributos para {nodo2_sel}:",
+                atributos_n2
+            )
 
-            df_filtrado_nodo1 = df[df["nodo1"] == nodo1_sel]
+        # Validación: si eligió usar filtros, debe seleccionar al menos uno
+        if filtros_n1 == [] and filtros_n2 == []:
+            st.info("Selecciona uno o más atributos para continuar…")
+            st.stop()
 
-            st.markdown("---")
+    # ------------------ Construcción del WHERE ------------------
+    def generar_where(label, atributos):
+        """
+        ['edad','nombre'] ->  ["n.edad = '<valor>'", "n.nombre = '<valor>'"]
+        """
+        if not atributos:
+            return []
+        return [f"{label}.{attr} = '<valor>'" for attr in atributos]
 
-            # ------------------ Relación ------------------
-            with st.container():
-                st.subheader("🟧 4. Selecciona la relación")
+    condiciones = []
+    condiciones += generar_where("n", filtros_n1)
+    condiciones += generar_where("m", filtros_n2)
 
-                relaciones = sorted(df_filtrado_nodo1["relacion"].unique())
-                relacion_sel = st.selectbox(
-                    "Relaciones disponibles:",
-                    options=["(elige una)"] + relaciones,
-                    index=0,
-                    key="relacion_select"
-                )
+    where_clause = ""
+    if condiciones:
+        where_clause = "WHERE " + " AND ".join(condiciones)
 
-            if relacion_sel != "(elige una)":
+    # ------------------ Construcción final de la Query ------------------
+    st.markdown("---")
+    st.subheader("🧾 7. Query generada")
 
-                df_filtrado_rel = df_filtrado_nodo1[df_filtrado_nodo1["relacion"] == relacion_sel]
+    query = f"MATCH (n:{nodo1_sel})-[r:{relacion_sel}]-(m:{nodo2_sel})\n"
 
-                st.markdown("---")
+    if where_clause:
+        query += where_clause + "\n"
 
-                # ------------------ Nodo 2 ------------------
-                with st.container():
-                    st.subheader("🟩 5. Selecciona el Nodo 2")
+    query += "RETURN *"
 
-                    nodos2 = sorted(df_filtrado_rel["nodo2"].unique())
-                    nodo2_sel = st.selectbox(
-                        "Nodo destino:",
-                        options=["(elige uno)"] + nodos2,
-                        index=0,
-                        key="nodo2_select"
-                    )
+    # Área editable
+    query_editable = st.text_area(
+        "Puedes editar la query:",
+        value=query,
+        height=200
+    )
 
-                if nodo2_sel != "(elige uno)":
-
-                    st.markdown("---")
-
-                    # ------------------ Pregunta si quiere filtros ------------------
-                    usar_filtros = False
-
-                    if atributos_ok:
-                        usar_filtros = st.radio(
-                            "¿Quieres añadir filtros por atributos?",
-                            options=["No", "Sí"],
-                            index=0,
-                            key="usar_filtros"
-                        ) == "Sí"
-
-                    # ------------------ Selección de atributos ------------------
-                    filtros_nodo1 = []
-                    filtros_nodo2 = []
-
-                    if atributos_ok and usar_filtros:
-
-                        st.subheader("🟪 6. Selecciona atributos para filtrar")
-
-                        # Atributos del nodo 1
-                        atributos_n1 = atributos_df[atributos_df["nodo"] == nodo1_sel]["atributo"].unique().tolist()
-                        if atributos_n1:
-                            filtros_nodo1 = st.multiselect(
-                                f"Atributos disponibles para {nodo1_sel}:",
-                                atributos_n1,
-                                key=f"attr_{nodo1_sel}_n1"
-                            )
-
-                        # Atributos del nodo 2
-                        atributos_n2 = atributos_df[atributos_df["nodo"] == nodo2_sel]["atributo"].unique().tolist()
-                        if atributos_n2:
-                            filtros_nodo2 = st.multiselect(
-                                f"Atributos disponibles para {nodo2_sel}:",
-                                atributos_n2,
-                                key=f"attr_{nodo2_sel}_n2"
-                            )
-
-                        # Validación después de mostrar los multiselect
-                        if filtros_nodo1 == [] and filtros_nodo2 == []:
-                            st.info("Selecciona uno o más atributos para continuar…")
-                            st.stop()
-
-                    # ------------------ Construcción filtros ------------------
-                    def construir_filtros(lista):
-                        """
-                        Devuelve un string válido de atributos Cypher con valores manuales:
-                        ['edad', 'nombre'] -> "{edad: '<valor>', nombre: '<valor>'}"
-                        """
-                        if not lista:
-                            return ""
-                        pares = [f"{attr}: '<valor>'" for attr in lista]
-                        return "{" + ", ".join(pares) + "}"
-
-                    filtro_n1 = construir_filtros(filtros_nodo1 if usar_filtros else [])
-                    filtro_n2 = construir_filtros(filtros_nodo2 if usar_filtros else [])
-
-                    # ------------------ Generación de Query ------------------
-                    st.markdown("---")
-                    with st.container():
-                        st.subheader("🧾 7. Query generada (editable)")
-
-                        n_f = f"{filtro_n1}" if filtro_n1 else ""
-                        m_f = f"{filtro_n2}" if filtro_n2 else ""
-
-                        query_base = (
-                            f"MATCH (n:{nodo1_sel}{n_f})"
-                            f"-[r:{relacion_sel}]-"
-                            f"(m:{nodo2_sel}{m_f})\nRETURN *"
-                        )
-
-                        query_editable = st.text_area(
-                            "Puedes editar la query manualmente:",
-                            value=query_base,
-                            height=180,
-                            key="query_edit"
-                        )
-
-                        st.code(query_editable, language="cypher")
-                        st.success("✅ Query lista para copiar y usar.")
+    st.code(query_editable, language="cypher")
+    st.success("✅ Query lista para copiar y usar.")
