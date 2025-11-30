@@ -107,7 +107,7 @@ if uploaded_file is not None:
                             key="usar_filtros"
                         ) == "Sí"
 
-                    # ------------------ Mostrar selección de atributos solo si quiere filtros ------------------
+                    # ------------------ Selección de atributos ------------------
                     filtros_nodo1 = []
                     filtros_nodo2 = []
 
@@ -133,10 +133,10 @@ if uploaded_file is not None:
                                 key=f"attr_{nodo2_sel}_n2"
                             )
 
-                        # Si quiere filtros pero no ha seleccionado nada → no dejar generar query
-                        if not filtros_nodo1 and not filtros_nodo2:
-                            st.warning("Selecciona al menos un atributo o cambia la opción a 'No'.")
-                            st.stop()  # Detiene antes de generar query
+                        # Validación después de mostrar los multiselect
+                        if filtros_nodo1 == [] and filtros_nodo2 == []:
+                            st.info("Selecciona uno o más atributos para continuar…")
+                            st.stop()
 
                     # ------------------ Construcción filtros ------------------
                     def construir_filtros(lista):
@@ -152,7 +152,7 @@ if uploaded_file is not None:
                     filtro_n1 = construir_filtros(filtros_nodo1 if usar_filtros else [])
                     filtro_n2 = construir_filtros(filtros_nodo2 if usar_filtros else [])
 
-                    # ------------------ Generación de Query (SOLO AHORA) ------------------
+                    # ------------------ Generación de Query ------------------
                     st.markdown("---")
                     with st.container():
                         st.subheader("🧾 7. Query generada (editable)")
