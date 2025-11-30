@@ -1,51 +1,53 @@
 import streamlit as st
 import pandas as pd
 
-st.title("Generador de Queries OpenCypher con selección de nodos")
+st.title("Generador Guiado de Queries OpenCypher")
 
 uploaded_file = st.file_uploader("Sube un archivo CSV", type=["csv"])
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
 
-    st.write("### Vista previa del CSV cargado")
+    st.write("### Vista previa del CSV cargado:")
     st.dataframe(df)
 
     expected_columns = ["nodo1", "relacion", "nodo2"]
     if not all(col in df.columns for col in expected_columns):
         st.error("El CSV debe contener las columnas: nodo1, relacion, nodo2")
     else:
-        # Obtener nodos únicos
-        nodos_unicos = sorted(set(df["nodo1"]).union(set(df["nodo2"])))
-        
-        st.write("### Selecciona los nodos que quieres incluir:")
-        nodos_seleccionados = st.multiselect(
-            "Nodos disponibles:",
-            options=nodos_unicos
-        )
+        st.subheader("1️⃣ Selecciona el Nodo 1")
 
-        if nodos_seleccionados:
-            # Filtrar filas si nodo1 O nodo2 está incluido
-            df_filtrado = df[
-                df["nodo1"].isin(nodos_seleccionados) |
-                df["nodo2"].isin(nodos_seleccionados)
-            ]
+        nodos1_unicos = sorted(df["nodo1"].unique())
+        nodo1_sel = st.selectbox("Elige un nodo de origen:", nodos1_unicos)
 
-            st.write("### Filas usadas para generar las queries:")
-            st.dataframe(df_filtrado)
+        if nodo1_sel:
+            df_filtrado_nodo1 = df[df["nodo1"] == nodo1_sel]
 
-            queries = [
-                f"MATCH (n:{row['nodo1']})-[r:{row['relacion']} ]-(m:{row['nodo2']})\nRETURN *"
-                for _, row in df_filtrado.iterrows()
-            ]
+            st.subheader("2️⃣ Selecciona la relación")
 
-            all_queries_text = "\n\n".join(queries)
+            relaciones = sorted(df_filtrado_nodo1["relacion"].unique())
+            relacion_sel = st.selectbox("Relaciones posibles:", relaciones)
 
-            st.write("### Queries generadas:")
-            st.text_area(
-                label="Copia las queries:",
-                value=all_queries_text,
-                height=300
-            )
-        else:
-            st.info("Selecciona al menos un nodo para generar las queries.")
+            if relacion_sel:
+                df_filtrado_rel = df_filtrado_nodo1[df_filtrado_nodo1["relacion"] == relacion_sel]
+
+                st.subheader("3️⃣ Selecciona el Nodo 2")
+
+                nodos2 = sorted(df_filtrado_rel["nodo2"].unique())
+                nodo2_sel = st.selectbox("Nodos posibles destino:", nodos2)
+
+                if nodo2_sel:
+                    st.subheader("4️⃣ Query generada")
+
+                    query = f"""
+MATCH (n:{nodo1_sel})-[r:{relacion_sel}]-(m:{nodo2_sel})
+RETURN *
+                    """.strip()
+
+                    st.code(query, language="cypher")
+
+                    st.text_area(
+                        "Copia la query:",
+                        value=query,
+                        height=120
+                    )
