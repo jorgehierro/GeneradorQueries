@@ -96,34 +96,47 @@ if uploaded_file is not None:
 
                     st.markdown("---")
 
-                    # ------------------ Filtros de atributos ------------------
-                    with st.container():
-                        st.subheader("🟪 6. Añadir filtros opcionales")
+                    # ------------------ Pregunta si quiere filtros ------------------
+                    usar_filtros = False
 
-                        filtros_nodo1 = []
-                        filtros_nodo2 = []
+                    if atributos_ok:
+                        usar_filtros = st.radio(
+                            "¿Quieres añadir filtros por atributos?",
+                            options=["No", "Sí"],
+                            index=0,
+                            key="usar_filtros"
+                        ) == "Sí"
 
-                        if atributos_ok:
+                    # ------------------ Mostrar selección de atributos solo si quiere filtros ------------------
+                    filtros_nodo1 = []
+                    filtros_nodo2 = []
 
-                            # Atributos de nodo1
-                            atributos_n1 = atributos_df[atributos_df["nodo"] == nodo1_sel]["atributo"].unique().tolist()
-                            if atributos_n1:
-                                filtros_nodo1 = st.multiselect(
-                                    f"Atributos disponibles para {nodo1_sel}:",
-                                    atributos_n1,
-                                    key=f"attr_{nodo1_sel}_n1"
-                                )
+                    if atributos_ok and usar_filtros:
 
-                            # Atributos de nodo2
-                            atributos_n2 = atributos_df[atributos_df["nodo"] == nodo2_sel]["atributo"].unique().tolist()
-                            if atributos_n2:
-                                filtros_nodo2 = st.multiselect(
-                                    f"Atributos disponibles para {nodo2_sel}:",
-                                    atributos_n2,
-                                    key=f"attr_{nodo2_sel}_n2"
-                                )
-                        else:
-                            st.info("Sube un CSV de atributos para habilitar filtros automáticos.")
+                        st.subheader("🟪 6. Selecciona atributos para filtrar")
+
+                        # Atributos del nodo 1
+                        atributos_n1 = atributos_df[atributos_df["nodo"] == nodo1_sel]["atributo"].unique().tolist()
+                        if atributos_n1:
+                            filtros_nodo1 = st.multiselect(
+                                f"Atributos disponibles para {nodo1_sel}:",
+                                atributos_n1,
+                                key=f"attr_{nodo1_sel}_n1"
+                            )
+
+                        # Atributos del nodo 2
+                        atributos_n2 = atributos_df[atributos_df["nodo"] == nodo2_sel]["atributo"].unique().tolist()
+                        if atributos_n2:
+                            filtros_nodo2 = st.multiselect(
+                                f"Atributos disponibles para {nodo2_sel}:",
+                                atributos_n2,
+                                key=f"attr_{nodo2_sel}_n2"
+                            )
+
+                        # Si quiere filtros pero no ha seleccionado nada → no dejar generar query
+                        if not filtros_nodo1 and not filtros_nodo2:
+                            st.warning("Selecciona al menos un atributo o cambia la opción a 'No'.")
+                            st.stop()  # Detiene antes de generar query
 
                     # ------------------ Construcción filtros ------------------
                     def construir_filtros(lista):
@@ -136,21 +149,21 @@ if uploaded_file is not None:
                         pares = [f"{attr}: '<valor>'" for attr in lista]
                         return "{" + ", ".join(pares) + "}"
 
-                    filtro_n1 = construir_filtros(filtros_nodo1)
-                    filtro_n2 = construir_filtros(filtros_nodo2)
+                    filtro_n1 = construir_filtros(filtros_nodo1 if usar_filtros else [])
+                    filtro_n2 = construir_filtros(filtros_nodo2 if usar_filtros else [])
 
-                    # ------------------ Generación de Query ------------------
+                    # ------------------ Generación de Query (SOLO AHORA) ------------------
                     st.markdown("---")
                     with st.container():
                         st.subheader("🧾 7. Query generada (editable)")
 
-                        n_filtro = f"{filtro_n1}" if filtro_n1 else ""
-                        m_filtro = f"{filtro_n2}" if filtro_n2 else ""
+                        n_f = f"{filtro_n1}" if filtro_n1 else ""
+                        m_f = f"{filtro_n2}" if filtro_n2 else ""
 
                         query_base = (
-                            f"MATCH (n:{nodo1_sel}{n_filtro})"
+                            f"MATCH (n:{nodo1_sel}{n_f})"
                             f"-[r:{relacion_sel}]-"
-                            f"(m:{nodo2_sel}{m_filtro})\nRETURN *"
+                            f"(m:{nodo2_sel}{m_f})\nRETURN *"
                         )
 
                         query_editable = st.text_area(
