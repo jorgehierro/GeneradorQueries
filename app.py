@@ -96,6 +96,7 @@ if uploaded_file is not None:
     # ------------------ Preparar listas de atributos disponibles ------------------
     filtros_n1, filtros_n2 = [], []
     valores_filtros_n1, valores_filtros_n2 = {}, {}
+    operadores_n1, operadores_n2 = {}, {}
 
     atributos_n1, atributos_n2 = [], []
     if atributos_ok and usar_filtros:
@@ -112,6 +113,15 @@ if uploaded_file is not None:
                 key=f"filtros_n1_{nodo1_sel}"
             )
             for att in filtros_n1:
+                
+                # Selección del operador
+                operadores_n1[att] = st.selectbox(
+                    f"Operador para {nodo1_sel}.{att}",
+                    ["=", "<", ">", "<>"],
+                    key=f"operador_{nodo1_sel}_{att}"
+                )    
+                
+                # Valor
                 valores_filtros_n1[att] = st.text_input(
                     f"Valor para {nodo1_sel}.{att}",
                     key=f"{nodo1_sel}_{att}_n1"
@@ -125,6 +135,15 @@ if uploaded_file is not None:
                 key=f"filtros_n2_{nodo2_sel}"
             )
             for att in filtros_n2:
+
+                # Selección del operador
+                operadores_n2[att] = st.selectbox(
+                    f"Operador para {nodo2_sel}.{att}",
+                    ["=", "<", ">", "<>"],
+                    key=f"operador_{nodo2_sel}_{att}"
+                )
+
+                # Valor
                 valores_filtros_n2[att] = st.text_input(
                     f"Valor para {nodo2_sel}.{att}",
                     key=f"{nodo2_sel}_{att}_n2"
@@ -135,13 +154,17 @@ if uploaded_file is not None:
 
         condiciones = []
 
+        # Nodo N1
         for att, val in valores_filtros_n1.items():
             if val.strip():
-                condiciones.append(f"n.{att} = '{val}'")
+                op = operadores_n1.get(att, "=")
+                condiciones.append(f"n.{att} {op} '{val}'")
 
+        # Nodo N2
         for att, val in valores_filtros_n2.items():
             if val.strip():
-                condiciones.append(f"m.{att} = '{val}'")
+                op = operadores_n2.get(att, "=")
+                condiciones.append(f"m.{att} {op} '{val}'")
 
         where_clause = ""
         if condiciones:
