@@ -4,8 +4,8 @@ import pandas as pd
 # ------------------ Estilo general ------------------
 st.set_page_config(page_title="Generador Cypher", layout="centered")
 
-st.title("🧩 Generador Cypher con Filtros Opcionales")
-st.markdown("Sube tus archivos y construye la query paso a paso.")
+st.title("Generador de queries Cypher")
+st.markdown("Sube tus archivos y construye la query.")
 
 st.markdown("---")
 
