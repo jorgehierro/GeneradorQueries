@@ -119,13 +119,24 @@ if uploaded_file is not None:
                     f"Operador para {nodo1_sel}.{att}",
                     ["=", "<", ">", "<>"],
                     key=f"operador_{nodo1_sel}_{att}"
-                )    
-                
-                # Valor
-                valores_filtros_n1[att] = st.text_input(
-                    f"Valor para {nodo1_sel}.{att}",
-                    key=f"{nodo1_sel}_{att}_n1"
                 )
+
+                # Valor
+                if att == "created_timestamp":
+                    fecha = st.date_input(
+                        f"Fecha para {nodo1_sel}.{att}",
+                        key=f"{nodo1_sel}_{att}_fecha_n1"
+                    )
+                    hora = st.time_input(
+                        f"Hora para {nodo1_sel}.{att}",
+                        key=f"{nodo1_sel}_{att}_hora_n1"
+                    )
+                    valores_filtros_n1[att] = f"{fecha} {hora}:00"
+                else:
+                    valores_filtros_n1[att] = st.text_input(
+                        f"Valor para {nodo1_sel}.{att}",
+                        key=f"{nodo1_sel}_{att}_n1"
+                    )
 
         # Nodo 2
         if atributos_n2:
@@ -144,10 +155,21 @@ if uploaded_file is not None:
                 )
 
                 # Valor
-                valores_filtros_n2[att] = st.text_input(
-                    f"Valor para {nodo2_sel}.{att}",
-                    key=f"{nodo2_sel}_{att}_n2"
-                )
+                if att == "created_timestamp":
+                    fecha = st.date_input(
+                        f"Fecha para {nodo2_sel}.{att}",
+                        key=f"{nodo2_sel}_{att}_fecha_n2"
+                    )
+                    hora = st.time_input(
+                        f"Hora para {nodo2_sel}.{att}",
+                        key=f"{nodo2_sel}_{att}_hora_n2"
+                    )
+                    valores_filtros_n2[att] = f"{fecha} {hora}:00"
+                else:
+                    valores_filtros_n2[att] = st.text_input(
+                        f"Valor para {nodo2_sel}.{att}",
+                        key=f"{nodo2_sel}_{att}_n2"
+                    )
 
     # ------------------ Botón para generar la query ------------------
     if st.button("Generar Query"):
@@ -184,3 +206,4 @@ if uploaded_file is not None:
         )
         st.code(query_editable, language="cypher")
         st.success("✅ Query lista para copiar y usar.")
+
